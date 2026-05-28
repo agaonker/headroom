@@ -51,7 +51,8 @@ pub fn check() -> Result<(), NodeError> {
         return Err(NodeError::NotFound);
     }
 
-    let raw = String::from_utf8_lossy(&node_out.stdout);
+    let raw: &str = std::str::from_utf8(&node_out.stdout)
+        .map_err(|e| NodeError::InvocationFailed(std::io::Error::new(std::io::ErrorKind::InvalidData, e)))?;
     let version_str = raw.trim().trim_start_matches('v');
     let major: u32 = version_str
         .split('.')
@@ -72,7 +73,9 @@ pub fn check() -> Result<(), NodeError> {
     // npx --version (presence is enough; we don't need a min)
     match Command::new("npx").arg("--version").output() {
         Ok(out) if out.status.success() => Ok(()),
-        Ok(_) | Err(_) => Err(NodeError::NpxMissing),
+        Ok(_) => Err(NodeError::NpxMissing),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(NodeError::NpxMissing),
+        Err(e) => Err(NodeError::InvocationFailed(e)),
     }
 }
 
@@ -97,7 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn min_is_correct() {
-        assert_eq!(MIN_NODE_MAJOR, 20);
+    fn parses_below_minimum() {
+        assert!(parse_major("v19.0.0").unwrap() < MIN_NODE_MAJOR);
     }
 }

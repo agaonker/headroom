@@ -40,7 +40,11 @@ async fn main() -> Result<()> {
 
     if let Err(e) = headroom_xray::node::check() {
         eprintln!("{e}");
-        std::process::exit(127); // POSIX "command not found" idiom
+        let code = match e {
+            headroom_xray::node::NodeError::NotFound => 127,
+            _ => 1,
+        };
+        std::process::exit(code);
     }
 
     // TODO Task 3: spawn npx codeburn and forward stdio.
