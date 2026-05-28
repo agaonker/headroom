@@ -47,9 +47,20 @@ async fn main() -> Result<()> {
         std::process::exit(code);
     }
 
-    // TODO Task 3: spawn npx codeburn and forward stdio.
-    // (`cli` field accesses arrive in Task 3+; suppress unused-field warnings for now.)
-    let _ = cli;
-    eprintln!("headroom-xray: Node OK; CodeBurn invocation not yet wired");
-    Ok(())
+    let args: Vec<String> = if cli.help_codeburn {
+        vec!["--help".to_string()]
+    } else {
+        cli.codeburn_args.clone()
+    };
+
+    let code = headroom_xray::codeburn::run(&args, None)
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("{e}");
+            1
+        });
+
+    // TODO Tasks 4-7: footer pipeline.
+
+    std::process::exit(code);
 }
